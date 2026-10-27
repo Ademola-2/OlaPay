@@ -56,13 +56,14 @@ function writeDemoWallet(uid, wallet) {
 }
 function renderDemoTransactions(uid) {
   const list = byId("transactionList");
+  list.querySelectorAll(".demo-transaction-row").forEach((row) => row.remove());
   const wallet = readDemoWallet(uid);
   if (!wallet.transactions.length) return;
   const empty = list.querySelector(".empty-transactions");
   if (empty) empty.remove();
   wallet.transactions.forEach((transaction) => {
     const row = document.createElement("div");
-    row.className = "transaction-row";
+    row.className = "transaction-row demo-transaction-row";
     const name = document.createElement("span");
     name.className = "transaction-name";
     const icon = document.createElement("i");
