@@ -38,63 +38,11 @@ function formatNaira(value) {
   const amount = Number(value);
   return Number.isFinite(amount) ? new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 2 }).format(amount) : "—";
 }
-const DEMO_STORAGE_PREFIX = "olapay_demo_wallet_v1:";
-function demoStorageKey(uid) { return DEMO_STORAGE_PREFIX + uid; }
-function readDemoWallet(uid) {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(demoStorageKey(uid)) || "null");
-    if (!parsed || typeof parsed.balance !== "number" || !Array.isArray(parsed.transactions)) {
-      return { balance: 0, transactions: [] };
-    }
-    return { balance: Math.max(0, parsed.balance), transactions: parsed.transactions.slice(0, 20) };
-  } catch {
-    return { balance: 0, transactions: [] };
-  }
-}
-function writeDemoWallet(uid, wallet) {
-  localStorage.setItem(demoStorageKey(uid), JSON.stringify(wallet));
-}
-function renderDemoTransactions(uid) {
-  const list = byId("transactionList");
-  list.querySelectorAll(".demo-transaction-row").forEach((row) => row.remove());
-  const wallet = readDemoWallet(uid);
-  if (!wallet.transactions.length) return;
-  const empty = list.querySelector(".empty-transactions");
-  if (empty) empty.remove();
-  wallet.transactions.forEach((transaction) => {
-    const row = document.createElement("div");
-    row.className = "transaction-row demo-transaction-row";
-    const name = document.createElement("span");
-    name.className = "transaction-name";
-    const icon = document.createElement("i");
-    icon.className = "bi bi-flask";
-    name.append(icon, document.createTextNode(transaction.description));
-    const date = document.createElement("span");
-    date.className = "transaction-date";
-    date.textContent = formatDate(transaction.createdAt);
-    const status = document.createElement("span");
-    status.className = "transaction-status";
-    status.textContent = "DEMO";
-    const amount = document.createElement("span");
-    amount.className = "transaction-amount";
-    amount.textContent = "+ " + formatNaira(transaction.amount);
-    amount.style.color = "#07885e";
-    row.append(name, date, status, amount);
-    list.prepend(row);
-  });
-}
-function loadDemoWallet(uid) {
-  const wallet = readDemoWallet(uid);
-  byId("walletBalance").textContent = formatNaira(wallet.balance);
-  byId("walletNote").textContent = "Demo funds only. Not real money and cannot be spent.";
-  const status = document.querySelector(".wallet-status");
-  if (status) status.innerHTML = '<span></span> Demo only';
-  renderDemoTransactions(uid);
-}
-let activeDemoUid = null;
+let activeUser = null;
+const API_BASE = "https://olapay.onrender.com";
 const demoModal = byId("demoWalletModal");
 function openDemoModal() {
-  if (!activeDemoUid) { showToast("Please wait while your account loads."); return; }
+  if (!activeUser) { showToast("Please wait while your account loads."); return; }
   demoModal.hidden = false;
   document.body.style.overflow = "hidden";
   byId("demoAmount").focus();
@@ -103,24 +51,69 @@ function closeDemoModal() {
   demoModal.hidden = true;
   document.body.style.overflow = "";
 }
+async function apiRequest(path, user, body) {
+  const token = await user.getIdToken();
+  const response = await fetch(API_BASE + path, {
+    method: "POST",
+    headers: {
+      "Authorization": "Bearer " + token,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(body)
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload.error || "The request could not be completed.");
+  return payload;
+}
+async function verifyReturnedPayment(user) {
+  const params = new URLSearchParams(window.location.search);
+  const status = params.get("status");
+  const txRef = params.get("tx_ref");
+  const transactionId = params.get("transaction_id");
+  if (!txRef && !transactionId && !status) return;
+  window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
+  if (status !== "successful" || !txRef || !transactionId) {
+    showToast("Payment was not confirmed. Your wallet has not been credited.");
+    return;
+  }
+  showToast("Verifying your payment securely…");
+  try {
+    const result = await apiRequest("/payments/verify", user, {
+      tx_ref: txRef,
+      transaction_id: transactionId
+    });
+    if (result.success) {
+      await Promise.all([loadWallet(user.uid), loadTransactions(user.uid)]);
+      showToast(result.alreadyCredited ? "This payment was already processed." : "Payment verified. Your wallet has been credited.");
+    } else {
+      showToast("Payment could not be confirmed. Your wallet has not been credited.");
+    }
+  } catch (error) {
+    console.warn("Payment verification:", error.message);
+    showToast(error.message || "Payment verification failed. Please contact support if you were charged.");
+  }
+}
 async function loadWallet(uid) {
+  byId("walletBalance").textContent = formatNaira(0);
+  byId("walletNote").textContent = "Wallet balance from your account record.";
+  const status = document.querySelector(".wallet-status");
+  if (status) status.innerHTML = '<span></span> Connected';
   try {
     const snapshot = await getDoc(doc(db, "wallets", uid));
     if (!snapshot.exists()) return;
     const wallet = snapshot.data();
     if (typeof wallet.balance === "number" && Number.isFinite(wallet.balance)) {
       byId("walletBalance").textContent = formatNaira(wallet.balance);
-      byId("walletNote").textContent = "Balance shown from your wallet record.";
-      document.querySelector(".wallet-status").innerHTML = '<span></span> Wallet record found';
     }
   } catch (error) {
     console.warn("OlaPay wallet read:", error.code || error.message);
+    byId("walletNote").textContent = "Could not load the wallet balance. Please refresh.";
   }
 }
 async function loadTransactions(uid) {
   const list = byId("transactionList");
   try {
-    const transactionsQuery = query(collection(db, "transactions"), where("userId", "==", uid), limit(5));
+    const transactionsQuery = query(collection(db, "transactions"), where("userId", "==", uid), limit(10));
     const snapshot = await getDocs(transactionsQuery);
     if (snapshot.empty) return;
     list.querySelectorAll(".transaction-row:not(.demo-transaction-row)").forEach((row) => row.remove());
@@ -161,6 +154,7 @@ onAuthStateChanged(auth, async (user) => {
     window.location.replace("auth.html#loginPane");
     return;
   }
+  activeUser = user;
   setCustomer(user);
   try {
     const profileSnapshot = await getDoc(doc(db, "users", user.uid));
@@ -169,8 +163,8 @@ onAuthStateChanged(auth, async (user) => {
     console.warn("OlaPay profile read:", error.code || error.message);
     showToast("You are signed in, but your profile details could not be loaded.");
   }
-  activeDemoUid = user.uid;
-  await Promise.all([loadDemoWallet(user.uid), loadTransactions(user.uid)]);
+  await Promise.all([loadWallet(user.uid), loadTransactions(user.uid)]);
+  await verifyReturnedPayment(user);
 });
 
 byId("logoutButton").addEventListener("click", async () => {
@@ -189,34 +183,31 @@ document.addEventListener("keydown", (event) => { if (event.key === "Escape" && 
 document.querySelectorAll("[data-demo-amount]").forEach((button) => {
   button.addEventListener("click", () => { byId("demoAmount").value = button.dataset.demoAmount; });
 });
-byId("demoFundingForm").addEventListener("submit", (event) => {
+byId("demoFundingForm").addEventListener("submit", async (event) => {
   event.preventDefault();
-  if (!activeDemoUid) { showToast("Please wait while your account loads."); return; }
+  if (!activeUser) { showToast("Please wait while your account loads."); return; }
   const amount = Number(byId("demoAmount").value);
-  const method = new FormData(event.currentTarget).get("method");
   if (!Number.isFinite(amount) || amount < 100 || amount > 50000 || amount % 50 !== 0) {
     showToast("Enter an amount from ₦100 to ₦50,000 in ₦50 increments.");
     return;
   }
-  const wallet = readDemoWallet(activeDemoUid);
-  wallet.balance = Math.round((wallet.balance + amount) * 100) / 100;
-  wallet.transactions.unshift({
-    description: "Demo funding · " + (method === "Card simulation" ? "Card" : "Bank transfer"),
-    amount,
-    createdAt: new Date().toISOString()
-  });
-  wallet.transactions = wallet.transactions.slice(0, 10);
+  const submitButton = event.currentTarget.querySelector('button[type="submit"]');
+  const originalText = submitButton.innerHTML;
+  submitButton.disabled = true;
+  submitButton.textContent = "Preparing secure checkout…";
   try {
-    writeDemoWallet(activeDemoUid, wallet);
-    byId("walletBalance").textContent = formatNaira(wallet.balance);
-    byId("walletNote").textContent = "Demo funds only. Not real money and cannot be spent.";
-    renderDemoTransactions(activeDemoUid);
+    const result = await apiRequest("/payments/initialize", activeUser, { amount });
+    if (!result.checkoutUrl || !result.checkoutUrl.startsWith("https://")) {
+      throw new Error("The payment provider returned an invalid checkout link.");
+    }
     closeDemoModal();
-    event.currentTarget.reset();
-    showToast("Demo funding successful. No real payment was made.");
+    window.location.assign(result.checkoutUrl);
   } catch (error) {
-    console.warn("Demo wallet storage unavailable:", error);
-    showToast("Demo wallet could not save in this browser. Check browser storage settings.");
+    console.warn("OlaPay payment initialization:", error.message);
+    showToast(error.message || "Could not start checkout. Please try again.");
+  } finally {
+    submitButton.disabled = false;
+    submitButton.innerHTML = originalText;
   }
 });
 const airtimeModal = byId("airtimeModal");
