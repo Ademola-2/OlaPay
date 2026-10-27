@@ -219,8 +219,54 @@ byId("demoFundingForm").addEventListener("submit", (event) => {
     showToast("Demo wallet could not save in this browser. Check browser storage settings.");
   }
 });
+const airtimeModal = byId("airtimeModal");
+function openAirtimeModal() {
+  airtimeModal.hidden = false;
+  document.body.style.overflow = "hidden";
+  byId("airtimeNetwork").focus();
+}
+function closeAirtimeModal() {
+  airtimeModal.hidden = true;
+  document.body.style.overflow = "";
+}
+function updateAirtimeSummary() {
+  const amount = Number(byId("airtimeAmount").value);
+  byId("airtimeSummary").querySelector("strong").textContent = formatNaira(Number.isFinite(amount) && amount > 0 ? amount : 0);
+}
+document.querySelectorAll("[data-airtime-amount]").forEach((button) => {
+  button.addEventListener("click", () => {
+    byId("airtimeAmount").value = button.dataset.airtimeAmount;
+    updateAirtimeSummary();
+  });
+});
+byId("airtimeAmount").addEventListener("input", updateAirtimeSummary);
+byId("closeAirtimeModal").addEventListener("click", closeAirtimeModal);
+airtimeModal.addEventListener("click", (event) => { if (event.target === airtimeModal) closeAirtimeModal(); });
+byId("airtimeForm").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const network = byId("airtimeNetwork").value;
+  const phone = byId("airtimePhone").value.trim();
+  const amount = Number(byId("airtimeAmount").value);
+  if (!network) { showToast("Choose a mobile network."); return; }
+  if (!/^0\\d{10}$/.test(phone)) { showToast("Enter a valid 11-digit Nigerian phone number."); return; }
+  if (!Number.isFinite(amount) || amount < 50 || amount > 50000 || amount % 50 !== 0) {
+    showToast("Enter an amount from ₦50 to ₦50,000 in ₦50 increments.");
+    return;
+  }
+  closeAirtimeModal();
+  showToast("Preview ready: " + network + " airtime for " + phone + " — " + formatNaira(amount) + ". No payment was made.");
+  event.currentTarget.reset();
+  updateAirtimeSummary();
+});
+document.addEventListener("keydown", (event) => { if (event.key === "Escape" && !airtimeModal.hidden) closeAirtimeModal(); });
 document.querySelectorAll("[data-service]").forEach((button) => {
-  button.addEventListener("click", () => showToast(button.dataset.service + " purchases are coming soon. No payment has been made."));
+  button.addEventListener("click", () => {
+    if (button.dataset.service === "Airtime") {
+      openAirtimeModal();
+      return;
+    }
+    showToast(button.dataset.service + " purchases are coming soon. No payment has been made.");
+  });
 });
 byId("mobileMenu").addEventListener("click", () => byId("sidebar").classList.toggle("open"));
 document.querySelectorAll(".side-link[href^='#']").forEach((link) => {
