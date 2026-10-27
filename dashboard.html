@@ -114,6 +114,39 @@
       </form>
     </section>
   </div>
+  <div class="airtime-modal-backdrop" id="airtimeModal" hidden>
+    <section class="airtime-modal" role="dialog" aria-modal="true" aria-labelledby="airtimeModalTitle">
+      <button class="airtime-modal-close" id="closeAirtimeModal" type="button" aria-label="Close airtime form"><i class="bi bi-x-lg"></i></button>
+      <span class="airtime-modal-icon"><i class="bi bi-phone"></i></span>
+      <span class="airtime-preview-label">AIRTIME · PREVIEW MODE</span>
+      <h2 id="airtimeModalTitle">Buy airtime</h2>
+      <p class="airtime-modal-copy">Enter the details to preview your airtime order. No money will be deducted and no airtime will be sent until OlaPay is connected to a secure VTU provider.</p>
+      <form id="airtimeForm">
+        <label for="airtimeNetwork">Mobile network</label>
+        <select id="airtimeNetwork" name="network" required>
+          <option value="">Choose a network</option>
+          <option value="MTN">MTN</option>
+          <option value="Airtel">Airtel</option>
+          <option value="Glo">Glo</option>
+          <option value="9mobile">9mobile</option>
+        </select>
+        <label for="airtimePhone">Phone number</label>
+        <input id="airtimePhone" name="phone" type="tel" inputmode="numeric" autocomplete="tel-national" pattern="0[0-9]{10}" maxlength="11" placeholder="08012345678" required>
+        <small class="airtime-field-hint">Enter an 11-digit Nigerian mobile number starting with 0.</small>
+        <label for="airtimeAmount">Amount (₦)</label>
+        <input id="airtimeAmount" name="amount" type="number" min="50" max="50000" step="50" inputmode="numeric" placeholder="e.g. 500" required>
+        <div class="airtime-presets" aria-label="Choose airtime amount">
+          <button type="button" data-airtime-amount="100">₦100</button>
+          <button type="button" data-airtime-amount="200">₦200</button>
+          <button type="button" data-airtime-amount="500">₦500</button>
+          <button type="button" data-airtime-amount="1000">₦1,000</button>
+        </div>
+        <div class="airtime-preview-summary" id="airtimeSummary" aria-live="polite"><span>Order total</span><strong>₦0.00</strong></div>
+        <button class="airtime-submit" type="submit">Preview airtime order <i class="bi bi-arrow-right"></i></button>
+        <p class="airtime-safety-note"><i class="bi bi-shield-check"></i> Preview only — no payment or airtime delivery.</p>
+      </form>
+    </section>
+  </div>
   <div class="toast-message" id="toastMessage" role="status" aria-live="polite"></div>
   <script type="module" src="js/dashboard.js"></script>
 </body>
