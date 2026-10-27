@@ -52,11 +52,11 @@
 
         <section class="overview-grid" aria-label="Account overview">
           <article class="wallet-card">
-            <div class="wallet-card-top"><span class="wallet-label"><i class="bi bi-wallet2"></i> WALLET OVERVIEW</span><span class="wallet-status"><span></span> Not activated</span></div>
+            <div class="wallet-card-top"><span class="wallet-label"><i class="bi bi-wallet2"></i> DEMO WALLET</span><span class="wallet-status"><span></span> Demo only</span></div>
             <p class="wallet-caption">Available balance</p>
             <div class="wallet-balance" id="walletBalance">₦ — — —</div>
-            <p class="wallet-note" id="walletNote">Your wallet will appear here when setup is complete.</p>
-            <div class="wallet-card-bottom"><span><i class="bi bi-lock-fill"></i> Balance is not editable from this page</span><button type="button" id="fundWalletButton">Fund wallet <i class="bi bi-arrow-up-right"></i></button></div>
+            <p class="wallet-note" id="walletNote">Demo balance only — not real funds.</p>
+            <div class="wallet-card-bottom"><span><i class="bi bi-lock-fill"></i> Demo balance stored in this browser</span><button type="button" id="fundWalletButton">Fund wallet <i class="bi bi-arrow-up-right"></i></button></div>
             <div class="wallet-decoration wallet-decoration-one"></div><div class="wallet-decoration wallet-decoration-two"></div>
           </article>
           <article class="account-card">
@@ -87,6 +87,32 @@
         <footer class="dashboard-footer"><span>© <span id="year"></span> OlaPay</span><span><i class="bi bi-shield-lock"></i> Your account. Your space. Built with care.</span></footer>
       </div>
     </main>
+  </div>
+  <div class="demo-modal-backdrop" id="demoWalletModal" hidden>
+    <section class="demo-modal" role="dialog" aria-modal="true" aria-labelledby="demoModalTitle">
+      <button class="demo-modal-close" id="closeDemoModal" type="button" aria-label="Close funding dialog"><i class="bi bi-x-lg"></i></button>
+      <span class="demo-modal-icon"><i class="bi bi-wallet2"></i></span>
+      <span class="demo-mode-label">DEMO MODE · NO REAL MONEY</span>
+      <h2 id="demoModalTitle">Try wallet funding</h2>
+      <p class="demo-modal-copy">Test the OlaPay funding flow. This only changes a demo balance saved in this browser; no payment is processed.</p>
+      <form id="demoFundingForm">
+        <label for="demoAmount">Amount (₦)</label>
+        <input id="demoAmount" name="amount" type="number" min="100" max="50000" step="50" inputmode="numeric" placeholder="e.g. 1000" required>
+        <div class="demo-presets" aria-label="Choose an amount">
+          <button type="button" data-demo-amount="500">₦500</button>
+          <button type="button" data-demo-amount="1000">₦1,000</button>
+          <button type="button" data-demo-amount="2000">₦2,000</button>
+          <button type="button" data-demo-amount="5000">₦5,000</button>
+        </div>
+        <label>Test funding method</label>
+        <div class="demo-methods">
+          <label class="demo-method"><input type="radio" name="method" value="Card simulation" checked><span><i class="bi bi-credit-card"></i><strong>Card</strong><small>Simulated checkout</small></span></label>
+          <label class="demo-method"><input type="radio" name="method" value="Bank transfer simulation"><span><i class="bi bi-bank"></i><strong>Bank transfer</strong><small>Simulated transfer</small></span></label>
+        </div>
+        <button class="demo-submit" type="submit">Simulate successful funding <i class="bi bi-arrow-right"></i></button>
+        <p class="demo-safety-note"><i class="bi bi-shield-check"></i> No card or bank details are requested.</p>
+      </form>
+    </section>
   </div>
   <div class="toast-message" id="toastMessage" role="status" aria-live="polite"></div>
   <script type="module" src="js/dashboard.js"></script>
