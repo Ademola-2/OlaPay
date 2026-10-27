@@ -123,7 +123,9 @@ async function loadTransactions(uid) {
     const transactionsQuery = query(collection(db, "transactions"), where("userId", "==", uid), limit(5));
     const snapshot = await getDocs(transactionsQuery);
     if (snapshot.empty) return;
-    list.replaceChildren();
+    list.querySelectorAll(".transaction-row:not(.demo-transaction-row)").forEach((row) => row.remove());
+    const empty = list.querySelector(".empty-transactions");
+    if (empty) empty.remove();
     snapshot.forEach((item) => {
       const data = item.data();
       const row = document.createElement("div");
