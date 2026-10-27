@@ -169,7 +169,8 @@ onAuthStateChanged(auth, async (user) => {
     console.warn("OlaPay profile read:", error.code || error.message);
     showToast("You are signed in, but your profile details could not be loaded.");
   }
-  activeDemoUid = user.uid;\n  await Promise.all([loadDemoWallet(user.uid), loadTransactions(user.uid)]);
+  activeDemoUid = user.uid;
+  await Promise.all([loadDemoWallet(user.uid), loadTransactions(user.uid)]);
 });
 
 byId("logoutButton").addEventListener("click", async () => {
