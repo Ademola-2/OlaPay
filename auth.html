@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1537">
+  <title>Account access | OlaPay</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    body{min-height:100vh;background:#f5f7fc;color:#15213b}
+    .auth-shell{min-height:100vh;display:flex;align-items:center;padding:36px 0}
+    .auth-card{max-width:960px;margin:auto;background:#fff;border-radius:24px;overflow:hidden;box-shadow:0 22px 70px rgba(16,32,70,.12)}
+    .auth-brand-panel{height:100%;min-height:100%;padding:48px 38px;background:linear-gradient(145deg,#0b1537,#152b5b);color:#fff}
+    .auth-brand-panel h1{font-weight:800;letter-spacing:-1.5px;margin-top:70px}
+    .auth-brand-panel p{color:#d5def5;line-height:1.7}
+    .auth-form-panel{padding:38px}
+    .auth-tabs .nav-link{color:#52617d;font-weight:700;border-radius:10px}
+    .auth-tabs .nav-link.active{background:#e9f8f1;color:#087d55}
+    .form-control{padding:12px 14px;border-radius:10px}
+    .btn-olapay{background:#0b8b62;color:#fff;border:0;border-radius:10px;padding:12px;font-weight:700}
+    .btn-olapay:hover{background:#08734f;color:#fff}
+    #authMessage{font-size:.94rem}
+    @media(max-width:767px){.auth-brand-panel{padding:28px;min-height:auto}.auth-brand-panel h1{margin-top:24px;font-size:2rem}.auth-form-panel{padding:25px}.auth-shell{padding:16px 0}}
+  </style>
+</head>
+<body>
+  <main class="auth-shell">
+    <div class="container">
+      <div class="auth-card row g-0">
+        <aside class="col-md-5">
+          <div class="auth-brand-panel">
+            <a class="navbar-brand brand text-white text-decoration-none" href="index.html">
+              <span class="brand-mark"><i class="bi bi-lightning-charge-fill"></i></span>
+              <span>ola<span class="brand-accent">pay</span></span>
+            </a>
+            <h1>Everyday payments, made simpler.</h1>
+            <p>Create your account or log in to continue. OlaPay is still being built; airtime, data and bill purchases are not enabled yet.</p>
+            <a class="text-white" href="index.html"><i class="bi bi-arrow-left me-2"></i>Back to home</a>
+          </div>
+        </aside>
+        <section class="col-md-7 auth-form-panel">
+          <div id="authMessage" class="alert alert-info" role="status" hidden></div>
+          <ul class="nav nav-pills auth-tabs mb-4" id="authTabs" role="tablist">
+            <li class="nav-item" role="presentation"><button class="nav-link active" id="login-tab" data-bs-toggle="pill" data-bs-target="#loginPane" type="button" role="tab">Log in</button></li>
+            <li class="nav-item" role="presentation"><button class="nav-link" id="signup-tab" data-bs-toggle="pill" data-bs-target="#signupPane" type="button" role="tab">Create account</button></li>
+          </ul>
+          <div class="tab-content">
+            <div class="tab-pane fade show active" id="loginPane" role="tabpanel">
+              <h2 class="h3 fw-bold mb-2">Welcome back</h2><p class="text-secondary mb-4">Log in to your OlaPay account.</p>
+              <form id="loginForm">
+                <div class="mb-3"><label class="form-label" for="loginEmail">Email address</label><input class="form-control" type="email" id="loginEmail" autocomplete="email" required></div>
+                <div class="mb-3"><label class="form-label" for="loginPassword">Password</label><input class="form-control" type="password" id="loginPassword" autocomplete="current-password" required></div>
+                <button class="btn btn-olapay w-100" type="submit">Log in <i class="bi bi-arrow-right ms-1"></i></button>
+                <button class="btn btn-link px-0 mt-2" id="resetPassword" type="button">Forgot password?</button>
+              </form>
+            </div>
+            <div class="tab-pane fade" id="signupPane" role="tabpanel">
+              <h2 class="h3 fw-bold mb-2">Create your account</h2><p class="text-secondary mb-4">It only takes a few details to get started.</p>
+              <form id="signupForm">
+                <div class="mb-3"><label class="form-label" for="fullName">Full name</label><input class="form-control" id="fullName" autocomplete="name" maxlength="80" required></div>
+                <div class="mb-3"><label class="form-label" for="signupEmail">Email address</label><input class="form-control" type="email" id="signupEmail" autocomplete="email" required></div>
+                <div class="mb-3"><label class="form-label" for="signupPassword">Password (minimum 6 characters)</label><input class="form-control" type="password" id="signupPassword" minlength="6" autocomplete="new-password" required></div>
+                <button class="btn btn-olapay w-100" type="submit">Create account <i class="bi bi-arrow-right ms-1"></i></button>
+              </form>
+            </div>
+          </div>
+          <p class="small text-secondary mt-4 mb-0"><i class="bi bi-shield-check me-1"></i> Keep your password private. OlaPay will never ask you to share it in chat.</p>
+        </section>
+      </div>
+    </div>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script type="module" src="js/auth.js"></script>
+</body>
+</html>
