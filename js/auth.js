@@ -83,7 +83,7 @@ if (loginForm) {
         });
       }
 
-      showMessage("You're logged in successfully, and your customer profile is ready. The customer dashboard is the next stage.", "success");
+      window.location.href = "dashboard.html";
     } catch (error) {
       console.error("OlaPay login/profile error:", error.code, error.message);
       showMessage(friendlyError(error), "danger");
