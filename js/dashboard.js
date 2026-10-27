@@ -248,7 +248,7 @@ byId("airtimeForm").addEventListener("submit", (event) => {
   const phone = byId("airtimePhone").value.trim();
   const amount = Number(byId("airtimeAmount").value);
   if (!network) { showToast("Choose a mobile network."); return; }
-  if (!/^0\\d{10}$/.test(phone)) { showToast("Enter a valid 11-digit Nigerian phone number."); return; }
+  if (!/^0\d{10}$/.test(phone)) { showToast("Enter a valid 11-digit Nigerian phone number."); return; }
   if (!Number.isFinite(amount) || amount < 50 || amount > 50000 || amount % 50 !== 0) {
     showToast("Enter an amount from ₦50 to ₦50,000 in ₦50 increments.");
     return;
