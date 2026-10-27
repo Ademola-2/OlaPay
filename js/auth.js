@@ -92,3 +92,10 @@ if (resetButton) {
     }
   });
 }
+
+if (window.location.hash === "#signupPane") {
+  const signupTab = document.getElementById("signup-tab");
+  if (signupTab && window.bootstrap) {
+    window.bootstrap.Tab.getOrCreateInstance(signupTab).show();
+  }
+}
