@@ -6,7 +6,7 @@ import {
   updateProfile
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import {
-  doc, setDoc, serverTimestamp
+  doc, getDoc, setDoc, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 const loginForm = document.getElementById("loginForm");
@@ -67,9 +67,25 @@ if (loginForm) {
     const button = loginForm.querySelector('button[type="submit"]');
     button.disabled = true;
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      showMessage("You're logged in successfully. The customer dashboard is the next stage.", "success");
+      const credential = await signInWithEmailAndPassword(auth, email, password);
+
+      // Repair the customer profile if Auth succeeded but the earlier profile write failed.
+      const userRef = doc(db, "users", credential.user.uid);
+      const userSnapshot = await getDoc(userRef);
+
+      if (!userSnapshot.exists()) {
+        await setDoc(userRef, {
+          uid: credential.user.uid,
+          displayName: credential.user.displayName || email.split("@")[0],
+          email: credential.user.email || email,
+          createdAt: serverTimestamp(),
+          role: "customer"
+        });
+      }
+
+      showMessage("You're logged in successfully, and your customer profile is ready. The customer dashboard is the next stage.", "success");
     } catch (error) {
+      console.error("OlaPay login/profile error:", error.code, error.message);
       showMessage(friendlyError(error), "danger");
     } finally {
       button.disabled = false;
