@@ -271,6 +271,114 @@ app.post("/payments/verify", requireFirebaseUser, async (req, res) => {
   }
 });
 
+
+function constantTimeStringEqual(a, b) {
+  if (typeof a !== "string" || typeof b !== "string" || !a || !b) return false;
+  const left = Buffer.from(a, "utf8");
+  const right = Buffer.from(b, "utf8");
+  return left.length === right.length && crypto.timingSafeEqual(left, right);
+}
+
+// Flutterwave webhook: FLW_SECRET_HASH must match the webhook secret hash
+// configured in the Flutterwave dashboard. Always verify the event with
+// Flutterwave's API before crediting a wallet.
+app.post("/webhooks/flutterwave", async (req, res) => {
+  const configuredHash = process.env.FLW_SECRET_HASH;
+  const suppliedHash = req.get("verif-hash");
+
+  if (!configuredHash || !constantTimeStringEqual(suppliedHash, configuredHash)) {
+    return res.status(401).json({ error: "Invalid webhook signature." });
+  }
+
+  const event = req.body || {};
+  if (event.event !== "charge.completed") {
+    return res.status(200).json({ received: true, ignored: true });
+  }
+
+  const data = event.data || {};
+  const txRef = typeof data.tx_ref === "string" ? data.tx_ref : "";
+  const transactionId = String(data.id || "");
+
+  if (!/^OLAPAY-[A-Za-z0-9-]{10,120}$/.test(txRef) || !/^\\d{1,30}$/.test(transactionId)) {
+    // Acknowledge unrelated or malformed signed events without changing a wallet.
+    return res.status(200).json({ received: true, ignored: true });
+  }
+
+  try {
+    const paymentRef = db.collection("transactions").doc(txRef);
+    const paymentSnap = await paymentRef.get();
+
+    // Only process a transaction that OlaPay originally created.
+    if (!paymentSnap.exists) {
+      return res.status(200).json({ received: true, ignored: true });
+    }
+
+    const payment = paymentSnap.data();
+    if (payment.provider !== "flutterwave" || payment.txRef !== txRef ||
+        payment.currency !== "NGN" || !payment.userId) {
+      return res.status(200).json({ received: true, ignored: true });
+    }
+
+    // Do not credit based only on webhook body data; re-verify with Flutterwave.
+    const verified = await flutterwaveRequest(
+      "/transactions/" + encodeURIComponent(transactionId) + "/verify",
+      { method: "GET" }
+    );
+    const tx = verified.data || {};
+    const expectedAmount = Number(payment.amount);
+    const paidAmount = Number(tx.amount);
+
+    if (tx.status !== "successful" ||
+        tx.tx_ref !== txRef ||
+        String(tx.currency).toUpperCase() !== "NGN" ||
+        !Number.isFinite(expectedAmount) ||
+        !Number.isFinite(paidAmount) ||
+        paidAmount < expectedAmount) {
+      // Valid webhook, but the payment has not passed verification. Never credit it.
+      return res.status(200).json({ received: true, verified: false });
+    }
+
+    await db.runTransaction(async (firestoreTx) => {
+      const freshPaymentSnap = await firestoreTx.get(paymentRef);
+      if (!freshPaymentSnap.exists) return;
+      const freshPayment = freshPaymentSnap.data();
+
+      // Idempotency: a repeated webhook or browser verification must not credit twice.
+      if (freshPayment.status === "successful") return;
+      if (freshPayment.status !== "pending" ||
+          freshPayment.userId !== payment.userId ||
+          freshPayment.txRef !== txRef) return;
+
+      const walletRef = db.collection("wallets").doc(freshPayment.userId);
+      const walletSnap = await firestoreTx.get(walletRef);
+      const existingBalance = walletSnap.exists ? Number(walletSnap.data().balance) : 0;
+      const currentBalance = Number.isFinite(existingBalance) ? existingBalance : 0;
+      const newBalance = Math.round((currentBalance + expectedAmount) * 100) / 100;
+
+      firestoreTx.set(walletRef, {
+        userId: freshPayment.userId,
+        balance: newBalance,
+        currency: "NGN",
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+
+      firestoreTx.update(paymentRef, {
+        status: "successful",
+        providerTransactionId: String(tx.id || transactionId),
+        providerReference: tx.flw_ref || null,
+        verifiedAt: admin.firestore.FieldValue.serverTimestamp(),
+        creditedAmount: expectedAmount
+      });
+    });
+
+    return res.status(200).json({ received: true });
+  } catch (error) {
+    console.error("Flutterwave webhook processing failed:", error.message);
+    // Non-200 asks Flutterwave to retry; do not disclose internal details.
+    return res.status(500).json({ error: "Webhook processing failed." });
+  }
+});
+
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`OlaPay API listening on port ${PORT}`);
 });
