@@ -299,7 +299,7 @@ app.post("/webhooks/flutterwave", async (req, res) => {
   const txRef = typeof data.tx_ref === "string" ? data.tx_ref : "";
   const transactionId = String(data.id || "");
 
-  if (!/^OLAPAY-[A-Za-z0-9-]{10,120}$/.test(txRef) || !/^\\d{1,30}$/.test(transactionId)) {
+  if (!/^OLAPAY-[A-Za-z0-9-]{10,120}$/.test(txRef) || !/^\d{1,30}$/.test(transactionId)) {
     // Acknowledge unrelated or malformed signed events without changing a wallet.
     return res.status(200).json({ received: true, ignored: true });
   }
